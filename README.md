@@ -32,7 +32,7 @@ The split keeps all windows from a recording on one side, so there is no leakage
 
 | File | Purpose |
 |---|---|
-| `chord_cascade_pipeline.py` | Builds the dataset, trains both models, and prints the evaluation |
+| `ChordFinder.ipynb` | Builds the dataset, trains both models, and prints the evaluation |
 | `Final_Cascade.py` | Live microphone predictor with a chord display window |
 
 ## Dataset
