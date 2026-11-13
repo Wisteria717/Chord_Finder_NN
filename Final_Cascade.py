@@ -101,7 +101,7 @@ def predict_chord(audio_window):
     q_prob = float(quality_model(rel, training=False).numpy()[0][0])
 
     q_idx = int(q_prob > 0.5)            # single sigmoid unit -> threshold, NOT argmax
-    return f"{ROOT_CLASSES[root_idx]} {quality_classes[q_idx]}"
+    return ROOT_CLASSES[root_idx], quality_classes[q_idx]
 
 
 stream = sd.InputStream(
@@ -120,10 +120,22 @@ ax.set_xticks([])
 ax.set_yticks([])
 ax.grid(False)
 
-chord_text_display = ax.text(
-    0.5, 0.5, '...',
-    fontname=custom_font, size=40,
-    ha='center', va='center', weight='bold', color='#888888'
+IDLE_COLOR = '#888888'
+ROOT_COLOR = '#d62728'
+QUALITY_COLOR = '#1f77b4'   # blue
+
+# Big root note in the center
+root_text_display = ax.text(
+    0.5, 0.58, '...',
+    fontname=custom_font, size=110,
+    ha='center', va='center', weight='bold', color=IDLE_COLOR
+)
+
+# Quality (Major / Minor) below the root, in blue
+quality_text_display = ax.text(
+    0.5, 0.38, '',
+    fontname=custom_font, size=36,
+    ha='center', va='center', weight='bold', color=QUALITY_COLOR
 )
 
 plt.tight_layout()
@@ -153,7 +165,7 @@ try:
 
         if rms_energy < RMS_THRESHOLD:
             # Silence: wipe everything so the old chord can't bleed into the next one
-            chord = "..."
+            chord = None   # keep showing the last chord on screen
             buffer[:] = 0.0
             filled = 0
             root_history.clear()
@@ -166,14 +178,18 @@ try:
             if filled < N:
                 # Window not yet full of real audio. A zero-padded partial window
                 # has poor frequency resolution, so wait (~0.5 s after onset).
-                chord = "..."
+                chord = None   # keep showing the last chord on screen
             else:
                 chord = predict_chord(buffer)
 
-        if chord != last_chord:
+        # Only update the display when a new chord is actually predicted.
+        # Silence / buffer refilling (chord is None) leaves the old chord up.
+        if chord is not None and chord != last_chord:
             last_chord = chord
-            chord_text_display.set_text(chord)
-            chord_text_display.set_color('#888888' if chord == "..." else '#d62728')
+            root_name, quality_name = chord
+            root_text_display.set_text(root_name)
+            root_text_display.set_color(IDLE_COLOR if root_name == "..." else ROOT_COLOR)
+            quality_text_display.set_text(quality_name)
             fig.canvas.draw_idle()
 
         plt.pause(0.001)
